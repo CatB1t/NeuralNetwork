@@ -2,7 +2,9 @@ class NeuralNetwork:
 
     def __init__(self):
         self.layers = [] # Array of current neural layers
-        self.input_dimension = 0
+
+    def add_layer(self, number_of_neurons, input_dim):
+        pass
 
     def predict(self, X):
         # Simply evaluate network

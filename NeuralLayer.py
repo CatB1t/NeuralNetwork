@@ -7,6 +7,9 @@ class NeuralLayer:
         for i in range(n):
             self._neurons.append(Neuron(input_size))
 
+    def add_neurons(self, n):
+        pass
+    
     def evaluate_layer(self):
         # Should return a vector of size n
         pass
