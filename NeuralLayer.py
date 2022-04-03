@@ -9,7 +9,10 @@ class NeuralLayer:
 
     def add_neurons(self, n):
         pass
-    
+
+    def update_neurons(self):
+        pass
+
     def evaluate_layer(self):
         # Should return a vector of size n
         pass
