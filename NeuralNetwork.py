@@ -4,28 +4,32 @@ import math
 np.random.seed(0)
 
 
-class Neuron:
-    def __init__(self, input_size):
-        self.weights = np.random.uniform(low=-0.5, high=0.5, size=(input_size,))
-        self.bias = 0
-
-
 class Layer:
     def __init__(self, input_size, n_neurons):
-        self._neurons = []
+        self._weights = [] # List of weights for each neuron
+        self.input = []
+        self.output = []
         for i in range(n_neurons):
-            self._neurons.append( Neuron(input_size) )
+            self._weights.append( np.random.uniform(low=-0.5, high=0.5, size=(input_size,)) )
 
     def sigmoid(self, net):
         return 1 / (1 + math.exp(-net))
 
-    def output(self, X):
+    def forward(self, x):
+        self.input = x
         output = []
-        for neuron in self._neurons:
+        for neuron in self._weights:
             sigmoid_vect = np.vectorize(self.sigmoid)
-            output.append(sigmoid_vect(np.dot(X, neuron.weights) + neuron.bias))
-        return np.array(output).transpose()
+            output.append(sigmoid_vect(np.dot(x, neuron)))
+        self.output = np.array(output).transpose()
+        return self.output
 
+    def backward_propagation(self, output_error, learning_rate):
+        input_error = np.dot(output_error, self.weights)
+        weights_error = np.dot(self.input, output_error)
+        # update parameters
+        self.weights -= learning_rate * weights_error
+        return input_error
 
 class Network:
     def __init__(self):
@@ -37,26 +41,25 @@ class Network:
     def predict(self, X):
         return self._forward_prop(X)
 
-    def fit(self, X, Y):
+    def fit(self, X, Y, epochs=20, learning_rate=0.1):
         # Should first do forward propagation
-        n_iteration = 20
-        for i in range(n_iteration):
-            y_pred = self._forward_prop(X)
-            # Then calculate error
-            error = self._error(Y, y_pred)
-            print("Iteration {} Error: {}".format(i, error))
-            # do backward propagation
-            self._backward_prop(error)
+        for i in range(epochs):
+            # For each sample
+            for j in range(len(X)):
+                y_pred = self._forward_prop(X[j])
+                error = self._error(Y[j], y_pred)
+                #print("Iteration: {}, Sample: {},  Error: {}".format(i+1, j+1, error))
+                self._backward_prop(error)
 
-    def _error(self, Y, y_pred):
-        return np.sum((Y - y_pred) ** 2)
+    def _error(self, y, y_pred):
+        return np.sum((y - y_pred) ** 2)
 
-    def _forward_prop(self, X):
+    def _forward_prop(self, x):
         # forward propagation for network
-        last_output = X
+        last_output = x
         # Simply evaluate network
         for layer in self._layers:
-            last_output = layer.output(last_output)
+            last_output = layer.forward(last_output)
         # Return the output results
         return last_output
 
@@ -65,5 +68,4 @@ class Network:
         # back propagation of the network
         # Update the weights at the output layer
         # Then go for each layer except the output and the input layer and update their weights
-
-        pass
+        ## hardcoded for input(2) , hidden_layer(3), output(1)
