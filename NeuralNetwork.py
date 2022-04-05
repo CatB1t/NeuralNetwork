@@ -1,60 +1,76 @@
 import numpy as np
-import math
 
-np.random.seed(0)
+
+class Sigmoid:
+    def __init__(self):
+        self.input = None
+
+    def _sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+    def _sigmoid_prime(self, x):
+        s = self._sigmoid(x)
+        return s * (1 - s)
+
+    def forward(self, x):
+        self.input = x
+        return self._sigmoid(x)
+
+    def backward(self, output_gradient, learning_rate):
+        return np.multiply(output_gradient, self._sigmoid_prime(self.input))
 
 
 class Layer:
     def __init__(self, input_size, n_neurons):
-        self._weights = [] # List of weights for each neuron
-        self.input = []
-        self.output = []
-        for i in range(n_neurons):
-            self._weights.append( np.random.uniform(low=-0.5, high=0.5, size=(input_size,)) )
-
-    def sigmoid(self, net):
-        return 1 / (1 + math.exp(-net))
+        self.weights = np.random.randn(n_neurons, input_size)
+        self.input = None
+        self.output = None
 
     def forward(self, x):
         self.input = x
-        output = []
-        for neuron in self._weights:
-            sigmoid_vect = np.vectorize(self.sigmoid)
-            output.append(sigmoid_vect(np.dot(x, neuron)))
-        self.output = np.array(output).transpose()
+        self.output = np.dot(self.weights, x)
         return self.output
 
-    def backward_propagation(self, output_error, learning_rate):
-        input_error = np.dot(output_error, self.weights)
-        weights_error = np.dot(self.input, output_error)
-        # update parameters
-        self.weights -= learning_rate * weights_error
-        return input_error
+    def backward(self, last_layer_d, learning_rate):
+        gd_weights = -np.dot(last_layer_d, self.input.T)
+        self.weights += learning_rate * gd_weights
+        d_input = np.dot(self.weights.T, last_layer_d)
+        return d_input
+
 
 class Network:
     def __init__(self):
-        self._layers = [] # Array of current neural layers`
+        self._layers = []
 
-    def add_layer(self, layer):
+    def add_layer(self, layer, activation):
         self._layers.append(layer)
+        self._layers.append(activation)
+
+    def fit(self, x_train, y_train, epochs=100, learning_rate=0.01):
+        for i in range(epochs):
+            error = 0
+            for x, y in zip(x_train, y_train):
+                y_pred = self.forward(x)
+                error += self._error(y, y_pred)
+                self.backward(y, y_pred, learning_rate)
+
+            print("iteration: {}, Error: {}".format(i+1, error / len(x_train)))
+
+    def argmax(self): # TODO for predicting final class
+        pass
 
     def predict(self, X):
-        return self._forward_prop(X)
-
-    def fit(self, X, Y, epochs=20, learning_rate=0.1):
-        # Should first do forward propagation
-        for i in range(epochs):
-            # For each sample
-            for j in range(len(X)):
-                y_pred = self._forward_prop(X[j])
-                error = self._error(Y[j], y_pred)
-                #print("Iteration: {}, Sample: {},  Error: {}".format(i+1, j+1, error))
-                self._backward_prop(error)
+        # TODO use max values to predict class
+        output = []
+        for x in X:
+            l_out = self.forward(x)
+            output.append(l_out)
+        return output
 
     def _error(self, y, y_pred):
-        return np.sum((y - y_pred) ** 2)
+        return np.mean((y - y_pred) ** 2)
 
-    def _forward_prop(self, x):
+    def forward(self, x):
         # forward propagation for network
         last_output = x
         # Simply evaluate network
@@ -63,9 +79,7 @@ class Network:
         # Return the output results
         return last_output
 
-    def _backward_prop(self, error):
-        learning_rate = 0.1
-        # back propagation of the network
-        # Update the weights at the output layer
-        # Then go for each layer except the output and the input layer and update their weights
-        ## hardcoded for input(2) , hidden_layer(3), output(1)
+    def backward(self, y, y_pred, learning_rate):
+        last_layer_ed = np.mean((y_pred - y))
+        for layer in reversed(self._layers):
+            last_layer_ed = layer.backward(last_layer_ed, learning_rate)
